@@ -183,11 +183,13 @@ void glFontGenV2_c::Build(HDC hdc, bool italic)
 	}
 
 	// Open image file for writing
-	std::stringstream tgaName;
-	tgaName << fontName;
-	if (italic) tgaName << " Italic";
-	tgaName << "." << height << ".tga";
-	std::ofstream out(tgaName.str(), std::ios_base::binary);
+	std::string tgaFileName = fontName;
+	if (italic) tgaFileName += " Italic";
+	tgaFileName += "." + std::to_string(height) + ".tga";
+
+	const auto tgaPath = outputDir / tgaFileName;
+	std::ofstream out(tgaPath, std::ios_base::binary);
+
 	if (!out) {
 		return;
 	}
@@ -281,11 +283,12 @@ void glFontGenV2_c::Build(HDC hdc, bool italic)
 void glFontGenV2_c::Finish(bool italic)
 {
 	// Open info file for writing
-	std::stringstream tgfName;
-	tgfName << fontName;
-	if (italic) tgfName << " Italic";
-	tgfName << ".tgf";
-	std::ofstream tgf(tgfName.str());
+	std::string tgfFileName = fontName;
+	if (italic) tgfFileName += " Italic";
+	tgfFileName += ".tgf";
+
+	const auto tgfPath = outputDir / tgfFileName;
+	std::ofstream tgf(tgfPath);
 	if (!tgf) {
 		return;
 	}
