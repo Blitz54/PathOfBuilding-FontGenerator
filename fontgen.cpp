@@ -56,8 +56,8 @@ struct fontHeight_s {
 class glFontGenV2_c {
 public:
 	void	Init(const std::string_view fontName);
-	void	Build(HDC dc);
-	void	Finish();
+	void	Build(HDC dc, bool italic = false);
+	void	Finish(bool italic = false);
 
 private:
 	std::string fontName;
@@ -69,7 +69,7 @@ void glFontGenV2_c::Init(const std::string_view i_fontName)
 	fontName = i_fontName;
 }
 
-void glFontGenV2_c::Build(HDC hdc)
+void glFontGenV2_c::Build(HDC hdc, bool italic)
 {
 	// Get metrics
 	TEXTMETRIC tm;
@@ -178,7 +178,9 @@ void glFontGenV2_c::Build(HDC hdc)
 
 	// Open image file for writing
 	std::stringstream tgaName;
-	tgaName << fontName << "." << height << ".tga";
+	tgaName << fontName;
+	if (italic) tgaName << " Italic";
+	tgaName << "." << height << ".tga";
 	std::ofstream out(tgaName.str(), std::ios_base::binary);
 	if (!out) {
 		return;
@@ -270,10 +272,14 @@ void glFontGenV2_c::Build(HDC hdc)
 	}
 }
 
-void glFontGenV2_c::Finish()
+void glFontGenV2_c::Finish(bool italic)
 {
 	// Open info file for writing
-	std::ofstream tgf(fontName + ".tgf");
+	std::stringstream tgfName;
+	tgfName << fontName;
+	if (italic) tgfName << " Italic";
+	tgfName << ".tgf";
+	std::ofstream tgf(tgfName.str());
 	if (!tgf) {
 		return;
 	}
@@ -298,14 +304,14 @@ void glFontGenV2_c::Finish()
 // Main Dialog Box
 // ===============
 
-static void BuildFont(HDC hdc, char* fontName, int size, int fontWeight, int fontPitch, glFontGenV2_c& gen)
+static void BuildFont(HDC hdc, char* fontName, int size, int fontWeight, int fontPitch, BOOL italic, glFontGenV2_c& gen)
 {
 	// Create font
 	HFONT hf = CreateFont(
 		size, 0, 0, 0, 
-		fontWeight, FALSE, FALSE, FALSE, 
-		DEFAULT_CHARSET, 
-		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+		fontWeight, italic, FALSE, FALSE,
+		DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		fontPitch | FF_MODERN, fontName
 	);
 	if (hf == NULL) {
@@ -316,7 +322,7 @@ static void BuildFont(HDC hdc, char* fontName, int size, int fontWeight, int fon
 	HGDIOBJ prevf = SelectObject(hdc, hf);
 
 	// Run font generator
-	gen.Build(hdc);
+	gen.Build(hdc, italic);
 
 	// Delete font object
 	SelectObject(hdc, prevf);
@@ -325,9 +331,15 @@ static void BuildFont(HDC hdc, char* fontName, int size, int fontWeight, int fon
 
 static void BuildSelectedFonts(HWND hwndDlg)
 {
-	// Get font name
-	char fontName[64];
-	GetDlgItemText(hwndDlg, IDC_FONTSEL, fontName, 64);
+	// Get font name from listbox selection
+	char fontName[64] = {};
+	HWND hList = GetDlgItem(hwndDlg, IDC_FONTSEL);
+	int sel = (int)SendMessage(hList, LB_GETCURSEL, 0, 0);
+	if (sel == LB_ERR) {
+		return;
+	}
+	// Get selected text (handles ANSI/UNICODE via macro)
+	SendMessage(hList, LB_GETTEXT, sel, (LPARAM)fontName);
 	if (*fontName == 0) {
 		return;
 	}
@@ -335,44 +347,120 @@ static void BuildSelectedFonts(HWND hwndDlg)
 	// Get font attributes
 	int fontWeight = GetDlgItemInt(hwndDlg, IDC_FONTWEIGHT, NULL, 0);
 	int fontPitch = (Button_GetCheck(GetDlgItem(hwndDlg, IDC_FONTFIXED))) ? FIXED_PITCH : VARIABLE_PITCH;
+	BOOL italic = Button_GetCheck(GetDlgItem(hwndDlg, IDC_FONTITALIC));
 
 	glFontGenV2_c gen;
 	gen.Init(fontName);
 
 	// Generate selected fonts
 	HDC hdc = GetDC(hwndDlg);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ10))) BuildFont(hdc, fontName, 10, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ12))) BuildFont(hdc, fontName, 12, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ14))) BuildFont(hdc, fontName, 14, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ16))) BuildFont(hdc, fontName, 16, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ18))) BuildFont(hdc, fontName, 18, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ20))) BuildFont(hdc, fontName, 20, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ22))) BuildFont(hdc, fontName, 22, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ24))) BuildFont(hdc, fontName, 24, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ26))) BuildFont(hdc, fontName, 26, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ28))) BuildFont(hdc, fontName, 28, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ32))) BuildFont(hdc, fontName, 32, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ36))) BuildFont(hdc, fontName, 36, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ40))) BuildFont(hdc, fontName, 40, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ48))) BuildFont(hdc, fontName, 48, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ56))) BuildFont(hdc, fontName, 56, fontWeight, fontPitch, gen);
-	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ64))) BuildFont(hdc, fontName, 64, fontWeight, fontPitch, gen);
 
-	gen.Finish();
+	if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZALL))) {
+		const int allSizes[] = { 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 32, 36, 40, 48, 56, 64 };
+		for (int size : allSizes)
+			BuildFont(hdc, fontName, size, fontWeight, fontPitch, italic, gen);
+	}
+	else {
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ10))) BuildFont(hdc, fontName, 10, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ12))) BuildFont(hdc, fontName, 12, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ14))) BuildFont(hdc, fontName, 14, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ16))) BuildFont(hdc, fontName, 16, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ18))) BuildFont(hdc, fontName, 18, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ20))) BuildFont(hdc, fontName, 20, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ22))) BuildFont(hdc, fontName, 22, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ24))) BuildFont(hdc, fontName, 24, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ26))) BuildFont(hdc, fontName, 26, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ28))) BuildFont(hdc, fontName, 28, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ32))) BuildFont(hdc, fontName, 32, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ36))) BuildFont(hdc, fontName, 36, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ40))) BuildFont(hdc, fontName, 40, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ48))) BuildFont(hdc, fontName, 48, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ56))) BuildFont(hdc, fontName, 56, fontWeight, fontPitch, italic, gen);
+		if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_SZ64))) BuildFont(hdc, fontName, 64, fontWeight, fontPitch, italic, gen);
+	}
+
+	gen.Finish(italic);
 
 	MessageBox(hwndDlg, "Font generated successfully.", "OpenGL Font Generator", MB_ICONINFORMATION);
 }
 
+// EnumFontProc: add names to the LISTBOX instead of combo
 static int __stdcall EnumFontProc(const LOGFONT *lf, const TEXTMETRIC *ltm, unsigned long FontType, LPARAM lParam)
 {
-	ComboBox_AddString((HWND)lParam, lf->lfFaceName);
+	HWND hList = (HWND)lParam;
+	// SendMessage will pick ANSI/UNICODE variant automatically
+	SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)lf->lfFaceName);
 	return 1;
+}
+
+static HFONT g_hPreviewFont = NULL;
+
+// Create or update the preview control font and text.
+// Uses current selection, weight and italic settings to create a sample HFONT
+static void UpdatePreview(HWND hwndDlg)
+{
+	// Get selected font name from listbox
+	char fontName[128] = {};
+	HWND hList = GetDlgItem(hwndDlg, IDC_FONTSEL);
+	int sel = (int)SendMessageA(hList, LB_GETCURSEL, 0, 0);
+	if (sel == LB_ERR) return;
+	SendMessageA(hList, LB_GETTEXT, sel, (LPARAM)fontName);
+	if (fontName[0] == '\0') return;
+
+	// Get preview text from edit control
+	char previewText[512] = {};
+	GetDlgItemTextA(hwndDlg, IDC_PREVIEWTEXT, previewText, (int)std::size(previewText));
+	if (previewText[0] == '\0') {
+		strcpy_s(previewText, "The quick brown fox jumps over the lazy dog");
+		SetDlgItemTextA(hwndDlg, IDC_PREVIEWTEXT, previewText);
+	}
+
+	// Get weight and italic
+	int fontWeight = GetDlgItemInt(hwndDlg, IDC_FONTWEIGHT, NULL, FALSE);
+	BOOL italic = Button_GetCheck(GetDlgItem(hwndDlg, IDC_FONTITALIC));
+
+	// Choose a reasonable preview point size (you can change this)
+	const int previewPoint = 18;
+
+	// Convert points -> device pixels and request character height
+	HDC hdc = GetDC(hwndDlg);
+	const int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+	ReleaseDC(hwndDlg, hdc);
+	const int lfHeight = -MulDiv(previewPoint, dpiY, 72);
+
+	// Build LOGFONT
+	LOGFONTA lf;
+	memset(&lf, 0, sizeof(lf));
+	lf.lfHeight = lfHeight;
+	lf.lfWeight = (fontWeight > 0) ? fontWeight : FW_NORMAL;
+	lf.lfItalic = italic ? 1 : 0;
+	lf.lfCharSet = DEFAULT_CHARSET;
+	lf.lfPitchAndFamily = FF_DONTCARE;
+	strncpy_s(lf.lfFaceName, fontName, _TRUNCATE);
+
+	// Create HFONT
+	HFONT hNewFont = CreateFontIndirectA(&lf);
+	if (!hNewFont) return;
+
+	// Apply to preview control
+	HWND hPreview = GetDlgItem(hwndDlg, IDC_PREVIEW);
+	// Set text first then font so control reports correct layout
+	SetWindowTextA(hPreview, previewText);
+	SendMessageA(hPreview, WM_SETFONT, (WPARAM)hNewFont, TRUE);
+
+	// Destroy previous font
+	if (g_hPreviewFont) {
+		// safe to delete after setting new font (control now uses hNewFont)
+		DeleteObject(g_hPreviewFont);
+	}
+	g_hPreviewFont = hNewFont;
 }
 
 static int __stdcall DlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
 	case WM_CLOSE:
+		if (g_hPreviewFont) { DeleteObject(g_hPreviewFont); g_hPreviewFont = NULL; }
 		EndDialog(hwndDlg, 1);
 		break;
 
@@ -392,7 +480,15 @@ static int __stdcall DlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
 		// Add font names
 		EnumFontFamilies(GetDC(hwndDlg), NULL, EnumFontProc, (LPARAM)GetDlgItem(hwndDlg, IDC_FONTSEL));
-		ComboBox_SetCurSel(GetDlgItem(hwndDlg, IDC_FONTSEL), 0);
+		ListBox_SetCurSel(GetDlgItem(hwndDlg, IDC_FONTSEL), 0);
+
+		// Default preview text
+		SetDlgItemTextA(hwndDlg, IDC_PREVIEWTEXT, "Path of Exile 2");
+		// Check the "All" box by default
+		CheckDlgButton(hwndDlg, IDC_SZALL, BST_CHECKED);
+
+		// Initialize preview
+		UpdatePreview(hwndDlg);
 
 		break;
 
@@ -402,7 +498,19 @@ static int __stdcall DlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 			BuildSelectedFonts(hwndDlg);
 			break;
 		case IDC_QUIT:
+			// cleanup preview font
+			if (g_hPreviewFont) { DeleteObject(g_hPreviewFont); g_hPreviewFont = NULL; }
 			EndDialog(hwndDlg, 1);
+			break;
+		case IDC_FONTSEL:
+			if (HIWORD(wParam) == LBN_SELCHANGE) {
+				UpdatePreview(hwndDlg);
+			}
+			break;
+		case IDC_PREVIEWTEXT:
+			if (HIWORD(wParam) == EN_CHANGE) {
+				UpdatePreview(hwndDlg);
+			}
 			break;
 		}
 		break;
