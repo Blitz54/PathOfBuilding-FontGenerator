@@ -1,0 +1,37 @@
+# Visual Studio user state
+.vs/
+*.vcxproj.user
+
+# Build output directories
+Debug/
+Release/
+x64/
+x86/
+ipch/
+
+# Compiled binaries and intermediates
+*.dll
+*.lib
+*.obj
+*.iobj
+*.ipdb
+*.pdb
+*.log
+*.tlog/
+*.lastbuildstate
+*.idb
+*.pch
+
+# Generated manifest and resource cache
+*.intermediate.manifest
+*.res
+
+# Crash dumps
+*.dmp
+
+# Temporary files
+*.tmp
+*.tmp_proj
+*.vc.db
+*.opendb
+*.user
