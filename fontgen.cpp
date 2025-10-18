@@ -7,9 +7,11 @@
 
 #include <algorithm>
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <system_error>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -61,12 +63,16 @@ public:
 
 private:
 	std::string fontName;
+	std::filesystem::path outputDir;
 	std::vector< fontHeight_s > heights;
 };
 
 void glFontGenV2_c::Init(const std::string_view i_fontName)
 {
 	fontName = i_fontName;
+	outputDir = std::filesystem::path("Generated Fonts");
+	std::error_code ec;
+	std::filesystem::create_directories(outputDir, ec);
 }
 
 void glFontGenV2_c::Build(HDC hdc)
@@ -177,9 +183,10 @@ void glFontGenV2_c::Build(HDC hdc)
 	}
 
 	// Open image file for writing
-	std::stringstream tgaName;
+	std::ostringstream tgaName;
 	tgaName << fontName << "." << height << ".tga";
-	std::ofstream out(tgaName.str(), std::ios_base::binary);
+	const auto tgaPath = outputDir / tgaName.str();
+	std::ofstream out(tgaPath, std::ios_base::binary);
 	if (!out) {
 		return;
 	}
@@ -273,7 +280,8 @@ void glFontGenV2_c::Build(HDC hdc)
 void glFontGenV2_c::Finish()
 {
 	// Open info file for writing
-	std::ofstream tgf(fontName + ".tgf");
+	const auto tgfPath = outputDir / (fontName + ".tgf");
+	std::ofstream tgf(tgfPath);
 	if (!tgf) {
 		return;
 	}

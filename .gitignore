@@ -8,8 +8,10 @@ Release/
 x64/
 x86/
 ipch/
+Generated Fonts/
 
 # Compiled binaries and intermediates
+*.exe
 *.dll
 *.lib
 *.obj
