@@ -7,9 +7,11 @@
 
 #include <algorithm>
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <system_error>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -61,12 +63,16 @@ public:
 
 private:
 	std::string fontName;
+	std::filesystem::path outputDir;
 	std::vector< fontHeight_s > heights;
 };
 
 void glFontGenV2_c::Init(const std::string_view i_fontName)
 {
 	fontName = i_fontName;
+	outputDir = std::filesystem::path("Generated Fonts");
+	std::error_code ec;
+	std::filesystem::create_directories(outputDir, ec);
 }
 
 void glFontGenV2_c::Build(HDC hdc, bool italic)
@@ -177,11 +183,18 @@ void glFontGenV2_c::Build(HDC hdc, bool italic)
 	}
 
 	// Open image file for writing
+<<<<<<< HEAD
 	std::stringstream tgaName;
 	tgaName << fontName;
 	if (italic) tgaName << " Italic";
 	tgaName << "." << height << ".tga";
 	std::ofstream out(tgaName.str(), std::ios_base::binary);
+=======
+	std::ostringstream tgaName;
+	tgaName << fontName << "." << height << ".tga";
+	const auto tgaPath = outputDir / tgaName.str();
+	std::ofstream out(tgaPath, std::ios_base::binary);
+>>>>>>> 3e2c5b7fd5e9b3032874cd5d327b5d64baa28a35
 	if (!out) {
 		return;
 	}
@@ -275,11 +288,16 @@ void glFontGenV2_c::Build(HDC hdc, bool italic)
 void glFontGenV2_c::Finish(bool italic)
 {
 	// Open info file for writing
+<<<<<<< HEAD
 	std::stringstream tgfName;
 	tgfName << fontName;
 	if (italic) tgfName << " Italic";
 	tgfName << ".tgf";
 	std::ofstream tgf(tgfName.str());
+=======
+	const auto tgfPath = outputDir / (fontName + ".tgf");
+	std::ofstream tgf(tgfPath);
+>>>>>>> 3e2c5b7fd5e9b3032874cd5d327b5d64baa28a35
 	if (!tgf) {
 		return;
 	}
