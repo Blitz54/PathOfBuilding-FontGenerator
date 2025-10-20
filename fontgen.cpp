@@ -117,7 +117,9 @@ void glFontGenV2_c::Build(HDC hdc, bool italic)
 			const unsigned bbSpan = bbSize / ys;
 			for (unsigned y = 0; y < ys; y++) {
 				for (unsigned x = 0; x < xs; x++) {
-					glyph.dat[(y + yo) * xs + x] = (uint8_t)(bb[y * bbSpan + x] / 64.0 * 255.0);
+					float a = std::clamp(bb[y * bbSpan + x] / 64.0f, 0.0f, 1.0f);
+					a = powf(a, 0.5f); // light gamma correction, makes it smoother
+					glyph.dat[(y + yo) * xs + x] = (uint8_t)(a * 255.0f);
 				}
 			}
 		}
