@@ -9,6 +9,7 @@
 #define IDC_CHOOSE                      1003
 #define IDC_FONTWEIGHT                  1004
 #define IDC_FONTFIXED                   1005
+#define IDC_FONTBOLD					1045
 #define IDC_FONTITALIC                  1051
 #define IDC_SZALL                       1009
 #define IDC_SZ10                        1010
