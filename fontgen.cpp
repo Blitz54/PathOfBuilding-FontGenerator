@@ -109,17 +109,37 @@ void glFontGenV2_c::Build(HDC hdc, bool italic, bool bold) // [CHANGED]
 		glyph.dat = std::make_unique<uint8_t[]>(height * xs);
 		memset(glyph.dat.get(), 0, height * xs);
 
-		if (bbSize) {
-			const unsigned bbSpan = bbSize / ys;
-			for (unsigned y = 0; y < ys; y++) {
-				for (unsigned x = 0; x < xs; x++) {
-					float a = std::clamp(bb[y * bbSpan + x] / 64.0f, 0.0f, 1.0f);
-					a = powf(a, 0.5f);
-					glyph.dat[(y + yo) * xs + x] = (uint8_t)(a * 255.0f);
+			if (bbSize && ys > 0 && xs > 0) {
+				unsigned rowStride = ((xs + 3u) & ~3u);
+				if (rowStride == 0 || rowStride * ys > bbSize) {
+					rowStride = bbSize / ys;
+				}
+				if (rowStride == 0) {
+					rowStride = xs;
+				}
+
+				for (unsigned y = 0; y < ys; y++) {
+					const int destRow = static_cast<int>(y) + yo;
+					if (destRow < 0 || destRow >= static_cast<int>(height)) {
+						continue;
+					}
+
+					const size_t srcOffset = static_cast<size_t>(y) * rowStride;
+					if (srcOffset + xs > bbSize) {
+						break;
+					}
+					const uint8_t* srcRow = bb.get() + srcOffset;
+					uint8_t* dstRow = glyph.dat.get() + static_cast<size_t>(destRow) * xs;
+
+					for (unsigned x = 0; x < xs; x++) {
+						const uint8_t raw = srcRow[x];
+						float a = std::clamp(raw / 64.0f, 0.0f, 1.0f);
+						a = powf(a, 0.5f);
+						dstRow[x] = static_cast<uint8_t>(a * 255.0f);
+					}
 				}
 			}
 		}
-	}
 
 	const unsigned cellHeight = height + cellPadding;
 
